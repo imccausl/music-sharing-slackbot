@@ -97,7 +97,7 @@ const formatSpotifySearchResults = (command, data) => {
               emoji: true,
             },
             style: 'primary',
-            value: id,
+            value: external_urls.spotify,
             action_id: 'song_select_button',
           },
         ],
@@ -152,7 +152,7 @@ app.action('song_select_button', ({ action, ack, say }) => {
   // Acknowledge the action
   ack();
   console.log(action);
-  say(`clicked the button`);
+  say(`${action.value}`);
 });
 
 (async () => {
