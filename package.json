@@ -1,0 +1,21 @@
+{
+  "name": "recommend-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "nodemon src/app.js"
+  },
+  "devDependencies": {
+    "eslint": "^6.7.2",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2"
+  },
+  "dependencies": {
+    "@slack/bolt": "^1.4.1",
+    "dotenv": "^8.2.0",
+    "eslint-plugin-prettier": "^3.1.1",
+    "node-spotify-api": "^1.1.1",
+    "nodemon": "^2.0.1"
+  }
+}
