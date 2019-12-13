@@ -122,7 +122,6 @@ app.message('hello', ({ message, say }) => {
 });
 
 app.message(/open\.spotify\.com/g, async ({ message, say }) => {
-  say("Hmm looks like a Spotify link! I'm gonna parse it!");
   const spotifyLink = message.text
     .replace(/^https?:\/\//g, '')
     .replace('<', '')
@@ -140,7 +139,7 @@ app.message(/open\.spotify\.com/g, async ({ message, say }) => {
   const trackInfo = extractSpotifyTrackInformation(response);
 
   say(
-    `Cool! You want to share *${trackInfo.track}* by *${trackInfo.artist}* from the album *${trackInfo.album}*.`
+    `Nice! <@${message.user}> posted a spotify link for *${trackInfo.track}* by *${trackInfo.artist}* from the album *${trackInfo.album}*.\nApple Music users can check that out here:`
   );
 });
 
