@@ -139,7 +139,7 @@ app.message(/open\.spotify\.com/g, async ({ message, say }) => {
   const trackInfo = extractSpotifyTrackInformation(response);
 
   say(
-    `Nice! <@${message.user}> posted a spotify link for *${trackInfo.track}* by *${trackInfo.artist}* from the album *${trackInfo.album}*.\nApple Music users can check that out here:`
+    `Nice! <@${message.user}> posted a Spotify link for *${trackInfo.track}* by *${trackInfo.artist}* from the album *${trackInfo.album}*. :musical_note:\nApple Music users can check that out here:`
   );
 });
 
@@ -178,11 +178,17 @@ app.command('/recommend', ({ command, ack, payload, context }) => {
   );
 });
 
-app.action('song_select_button', ({ body: { user }, action, ack, say }) => {
+app.action('song_select_button', async ({ body, action, ack, respond }) => {
   // Acknowledge the action
+  const { user } = body;
   ack();
-  console.log(user);
-  say(`<@${user.id}> recommends: ${action.value}`);
+
+  respond({
+    response_type: 'in_channel',
+    text: `<@${user.id}> recommends: ${action.value}`,
+    replace_original: true,
+    delete_original: true,
+  });
 });
 
 (async () => {
