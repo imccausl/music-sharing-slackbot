@@ -108,9 +108,40 @@ const formatSpotifySearchResults = (command, data) => {
   return searchResults;
 };
 
+const extractSpotifyTrackInformation = ({ artists, album, name }) => {
+  return {
+    artist: artists[0].name,
+    album: album.name,
+    track: name,
+  };
+};
+
 app.message('hello', ({ message, say }) => {
   // say() sends a message to the channel where the event was triggered
   say(`Hey there <@${message.user}>!`);
+});
+
+app.message(/open\.spotify\.com/g, async ({ message, say }) => {
+  say("Hmm looks like a Spotify link! I'm gonna parse it!");
+  const spotifyLink = message.text
+    .replace(/^https?:\/\//g, '')
+    .replace('<', '')
+    .replace('>', '')
+    .split('/');
+  const spotifyId = spotifyLink[spotifyLink.length - 1];
+  const idType = spotifyLink[spotifyLink.length - 2];
+  console.log(message.text);
+  console.log(spotifyId);
+  console.log(idType);
+  const response = await spotify.request(
+    `https://api.spotify.com/v1/${idType}s/${spotifyId}`
+  );
+  console.log(response);
+  const trackInfo = extractSpotifyTrackInformation(response);
+
+  say(
+    `Cool! You want to share *${trackInfo.track}* by *${trackInfo.artist}* from the album *${trackInfo.album}*.`
+  );
 });
 
 app.command('/recommend', ({ command, ack, payload, context }) => {
@@ -148,11 +179,11 @@ app.command('/recommend', ({ command, ack, payload, context }) => {
   );
 });
 
-app.action('song_select_button', ({ action, ack, say }) => {
+app.action('song_select_button', ({ body: { user }, action, ack, say }) => {
   // Acknowledge the action
   ack();
-  console.log(action);
-  say(`${action.value}`);
+  console.log(user);
+  say(`<@${user.id}> recommends: ${action.value}`);
 });
 
 (async () => {
