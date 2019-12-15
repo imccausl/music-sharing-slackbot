@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const { App } = require('@slack/bolt');
 const Spotify = require('node-spotify-api');
+const ms = require('pretty-ms');
 
 // Initialize slack app
 const app = new App({
@@ -25,7 +26,7 @@ const SEARCH_LIMIT = 5;
  * Spotify Data Parsing Helper
  */
 
-const formatSpotifySearchResults = (data, command = null) => {
+const formatSpotifySearchResults = (data, searchString = null) => {
   /* Data we need from spotify
    * tracks {
    *  href -> the uri of the search query itself,
@@ -50,12 +51,12 @@ const formatSpotifySearchResults = (data, command = null) => {
   } = data;
   const searchResults = [];
 
-  if (command) {
+  if (searchString) {
     searchResults.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `Search for "${command.text}" returned *${total}* results:`,
+        text: `Search for "${searchString}" returned *${total}* results:`,
       },
     });
   }
@@ -64,7 +65,7 @@ const formatSpotifySearchResults = (data, command = null) => {
     const {
       album,
       artists,
-      duration,
+      duration_ms,
       explicit,
       external_urls,
       name,
@@ -72,6 +73,7 @@ const formatSpotifySearchResults = (data, command = null) => {
       popularity,
     } = result;
 
+    console.log(duration_ms);
     searchResults.push(
       {
         type: 'divider',
@@ -87,6 +89,16 @@ const formatSpotifySearchResults = (data, command = null) => {
           image_url: album.images[1].url,
           alt_text: `${artists[0].name} ${album.name} thumbnail`,
         },
+      },
+      {
+        type: 'context',
+        elements: [
+          {
+            type: 'plain_text',
+            emoji: true,
+            text: ms(duration_ms, { secondsDecimalDigits: 0 }),
+          },
+        ],
       },
       {
         type: 'actions',
@@ -109,31 +121,31 @@ const formatSpotifySearchResults = (data, command = null) => {
 
   const paginationActions = [];
 
-  if (next) {
-    paginationActions.push({
-      type: 'button',
-      text: {
-        type: 'plain_text',
-        text: `Next ${SEARCH_LIMIT}`,
-        emoji: true,
-      },
-      style: 'primary',
-      value: next,
-      action_id: 'next_results',
-    });
-  }
-
   if (previous) {
     paginationActions.push({
       type: 'button',
       text: {
         type: 'plain_text',
-        text: `Previous ${SEARCH_LIMIT}`,
+        text: `< Previous ${SEARCH_LIMIT}`,
         emoji: true,
       },
       style: 'primary',
       value: previous,
       action_id: 'previous_results',
+    });
+  }
+
+  if (next) {
+    paginationActions.push({
+      type: 'button',
+      text: {
+        type: 'plain_text',
+        text: `Next ${SEARCH_LIMIT} >`,
+        emoji: true,
+      },
+      style: 'primary',
+      value: next,
+      action_id: 'next_results',
     });
   }
 
@@ -213,7 +225,7 @@ app.command('/recommend', ({ command, ack, context, respond }) => {
       }
 
       if (data && data.tracks) {
-        const blocks = formatSpotifySearchResults(data, command);
+        const blocks = formatSpotifySearchResults(data, command.text);
         postResults(respond, blocks);
       }
     }
@@ -238,6 +250,7 @@ app.action('next_results', async ({ action, ack, respond }) => {
 
   try {
     const data = await spotify.request(action.value);
+    console.log(data);
     const blocks = formatSpotifySearchResults(data);
     postResults(respond, blocks);
   } catch (e) {
