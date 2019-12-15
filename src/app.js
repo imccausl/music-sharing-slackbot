@@ -25,7 +25,7 @@ const SEARCH_LIMIT = 5;
  * Spotify Data Parsing Helper
  */
 
-const formatSpotifySearchResults = (command, data) => {
+const formatSpotifySearchResults = (data, command = null) => {
   /* Data we need from spotify
    * tracks {
    *  href -> the uri of the search query itself,
@@ -48,15 +48,17 @@ const formatSpotifySearchResults = (command, data) => {
   const {
     tracks: { total, items, next, previous },
   } = data;
-  const searchResults = [
-    {
+  const searchResults = [];
+
+  if (command) {
+    searchResults.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
         text: `Search for "${command.text}" returned *${total}* results:`,
       },
-    },
-  ];
+    });
+  }
 
   items.forEach(result => {
     const {
@@ -105,6 +107,45 @@ const formatSpotifySearchResults = (command, data) => {
     );
   });
 
+  const paginationActions = [];
+
+  if (next) {
+    paginationActions.push({
+      type: 'button',
+      text: {
+        type: 'plain_text',
+        text: `Next ${SEARCH_LIMIT}`,
+        emoji: true,
+      },
+      style: 'primary',
+      value: next,
+      action_id: 'next_results',
+    });
+  }
+
+  if (previous) {
+    paginationActions.push({
+      type: 'button',
+      text: {
+        type: 'plain_text',
+        text: `Previous ${SEARCH_LIMIT}`,
+        emoji: true,
+      },
+      style: 'primary',
+      value: previous,
+      action_id: 'previous_results',
+    });
+  }
+
+  const paginationNav = {
+    type: 'actions',
+    elements: paginationActions,
+  };
+
+  if (paginationActions.length) {
+    searchResults.push({ type: 'divider' }, paginationNav);
+  }
+
   return searchResults;
 };
 
@@ -114,6 +155,15 @@ const extractSpotifyTrackInformation = ({ artists, album, name }) => {
     album: album.name,
     track: name,
   };
+};
+
+const postResults = (respond, blocks) => {
+  respond({
+    response_type: 'ephemeral',
+    blocks,
+    replace_original: true,
+    delete_original: true,
+  });
 };
 
 app.message('hello', ({ message, say }) => {
@@ -143,7 +193,7 @@ app.message(/open\.spotify\.com/g, async ({ message, say }) => {
   );
 });
 
-app.command('/recommend', ({ command, ack, payload, context }) => {
+app.command('/recommend', ({ command, ack, context, respond }) => {
   ack();
 
   spotify.search(
@@ -163,16 +213,8 @@ app.command('/recommend', ({ command, ack, payload, context }) => {
       }
 
       if (data && data.tracks) {
-        const blocks = formatSpotifySearchResults(command, data);
-        await app.client.chat.postEphemeral({
-          token: context.botToken,
-          user: command.user_id,
-          channel: command.channel_id,
-          blocks,
-
-          // user: command.user_id,
-          // channel: command.channel_id,
-        });
+        const blocks = formatSpotifySearchResults(data, command);
+        postResults(respond, blocks);
       }
     }
   );
@@ -189,6 +231,36 @@ app.action('song_select_button', async ({ body, action, ack, respond }) => {
     replace_original: true,
     delete_original: true,
   });
+});
+
+app.action('next_results', async ({ action, ack, respond }) => {
+  ack();
+
+  try {
+    const data = await spotify.request(action.value);
+    const blocks = formatSpotifySearchResults(data);
+    postResults(respond, blocks);
+  } catch (e) {
+    respond({
+      response_type: 'ephemeral',
+      text: `Uh oh! An error occured: ${e}`,
+    });
+  }
+});
+
+app.action('previous_results', async ({ action, ack, respond }) => {
+  ack();
+
+  try {
+    const data = await spotify.request(action.value);
+    const blocks = formatSpotifySearchResults(data);
+    postResults(respond, blocks);
+  } catch (e) {
+    respond({
+      response_type: 'ephemeral',
+      text: `Uh oh! An error occured: ${e}`,
+    });
+  }
 });
 
 (async () => {
