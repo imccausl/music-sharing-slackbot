@@ -82,7 +82,10 @@ const formatSpotifySearchResults = (data, searchString = null) => {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `*<${external_urls.spotify}|${name}>*\n<${album.external_urls.spotify}|${album.name}>\n_<${artists[0].external_urls.spotify}|${artists[0].name}>_`,
+          text: `
+            *<${external_urls.spotify}|${name}>*\n
+            <${album.external_urls.spotify}|${album.name}>\n
+            _<${artists[0].external_urls.spotify}|${artists[0].name}>_`,
         },
         accessory: {
           type: 'image',
