@@ -3,6 +3,7 @@ require('dotenv').config();
 const { App } = require('@slack/bolt');
 const Spotify = require('node-spotify-api');
 const ms = require('pretty-ms');
+const { YouTube } = require('better-youtube-api');
 
 // Initialize slack app
 const app = new App({
@@ -15,6 +16,8 @@ const spotify = new Spotify({
   id: process.env.SPOTIFY_CLIENT_ID,
   secret: process.env.SPOTIFY_CLIENT_SECRET,
 });
+
+const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
 const SEARCH_LIMIT = 5;
 
@@ -202,9 +205,14 @@ app.message(/open\.spotify\.com/g, async ({ message, say }) => {
   );
   console.log(response);
   const trackInfo = extractSpotifyTrackInformation(response);
-
+  const youtubeResult = await youtube.searchVideos(
+    `${trackInfo.track} ${trackInfo.artist} ${trackInfo.album}`,
+    2
+  );
+  console.log(youtubeResult);
   say(
-    `Nice! <@${message.user}> posted a Spotify link for *${trackInfo.track}* by *${trackInfo.artist}* from the album *${trackInfo.album}*. :musical_note:\nApple Music users can check that out here:`
+    `Nice! <@${message.user}> posted a Spotify link for *${trackInfo.track}* by *${trackInfo.artist}* from the album *${trackInfo.album}*. :musical_note:
+    \nYou can also check it out on YouTube here: ${youtubeResult[0].shortUrl}`
   );
 });
 
@@ -253,7 +261,6 @@ app.action('next_results', async ({ action, ack, respond }) => {
 
   try {
     const data = await spotify.request(action.value);
-    console.log(data);
     const blocks = formatSpotifySearchResults(data);
     postResults(respond, blocks);
   } catch (e) {
