@@ -1,8 +1,9 @@
 require('dotenv').config();
 
 const { App } = require('@slack/bolt');
-const Spotify = require('node-spotify-api');
+const Fuse = require('fuse.js');
 const ms = require('pretty-ms');
+const Spotify = require('node-spotify-api');
 const { YouTube } = require('better-youtube-api');
 
 // Initialize slack app
@@ -190,6 +191,11 @@ app.message('hello', ({ message, say }) => {
 });
 
 app.message(/open\.spotify\.com/g, async ({ message, say }) => {
+  const fuzzySearchOptions = {
+    keys: ['title', 'description'],
+    id: 'shortUrl',
+  };
+
   const spotifyLink = message.text
     .replace(/^https?:\/\//g, '')
     .replace('<', '')
@@ -197,22 +203,20 @@ app.message(/open\.spotify\.com/g, async ({ message, say }) => {
     .split('/');
   const spotifyId = spotifyLink[spotifyLink.length - 1];
   const idType = spotifyLink[spotifyLink.length - 2];
-  console.log(message.text);
-  console.log(spotifyId);
-  console.log(idType);
   const response = await spotify.request(
     `https://api.spotify.com/v1/${idType}s/${spotifyId}`
   );
-  console.log(response);
   const trackInfo = extractSpotifyTrackInformation(response);
-  const youtubeResult = await youtube.searchVideos(
-    `${trackInfo.track} ${trackInfo.artist} ${trackInfo.album}`,
-    2
-  );
+  const searchString = `${trackInfo.track} ${trackInfo.artist} ${trackInfo.album}`;
+  const youtubeResult = await youtube.searchVideos(searchString, 10);
   console.log(youtubeResult);
+
+  const fuse = new Fuse(youtubeResult, fuzzySearchOptions);
+  const bestMatches = fuse.search(searchString);
+  console.log(bestMatches);
   say(
     `Nice! <@${message.user}> posted a Spotify link for *${trackInfo.track}* by *${trackInfo.artist}* from the album *${trackInfo.album}*. :musical_note:
-    \nYou can also check it out on YouTube here: ${youtubeResult[0].shortUrl}`
+    \nYou can also check it out on YouTube here: ${bestMatches[0]}`
   );
 });
 
