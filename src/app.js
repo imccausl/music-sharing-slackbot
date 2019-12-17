@@ -18,6 +18,7 @@ const spotify = new Spotify({
   secret: process.env.SPOTIFY_CLIENT_SECRET,
 });
 
+// Initialize youtube api
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
 const SEARCH_LIMIT = 5;
