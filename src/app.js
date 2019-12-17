@@ -176,6 +176,20 @@ const extractSpotifyTrackInformation = ({ artists, album, name }) => {
   };
 };
 
+const spotifyUrlComponents = url => {
+  const components = url
+    .replace(/https?:\/\//g, '')
+    .replace('<', '')
+    .replace('>', '')
+    .split('/');
+
+  return {
+    domain: components[0],
+    idType: components[1],
+    spotifyId: components[2],
+  };
+};
+
 const postResults = (respond, blocks) => {
   respond({
     response_type: 'ephemeral',
@@ -192,28 +206,24 @@ app.message('hello', ({ message, say }) => {
 
 app.message(/open\.spotify\.com/g, async ({ message, say }) => {
   const fuzzySearchOptions = {
-    keys: ['title', 'description'],
+    keys: [
+      { name: 'title', weight: 0.8 },
+      { name: 'description', weight: 0.2 },
+    ],
     id: 'shortUrl',
   };
-
-  const spotifyLink = message.text
-    .replace(/^https?:\/\//g, '')
-    .replace('<', '')
-    .replace('>', '')
-    .split('/');
-  const spotifyId = spotifyLink[spotifyLink.length - 1];
-  const idType = spotifyLink[spotifyLink.length - 2];
+  const linkComponents = spotifyUrlComponents(message.text);
   const response = await spotify.request(
-    `https://api.spotify.com/v1/${idType}s/${spotifyId}`
+    `https://api.spotify.com/v1/${linkComponents.idType}s/${linkComponents.spotifyId}`
   );
   const trackInfo = extractSpotifyTrackInformation(response);
   const searchString = `${trackInfo.track} ${trackInfo.artist} ${trackInfo.album}`;
+  console.log(searchString);
   const youtubeResult = await youtube.searchVideos(searchString, 10);
-  console.log(youtubeResult);
-
   const fuse = new Fuse(youtubeResult, fuzzySearchOptions);
   const bestMatches = fuse.search(searchString);
   console.log(bestMatches);
+
   say(
     `Nice! <@${message.user}> posted a Spotify link for *${trackInfo.track}* by *${trackInfo.artist}* from the album *${trackInfo.album}*. :musical_note:
     \nYou can also check it out on YouTube here: ${bestMatches[0]}`
