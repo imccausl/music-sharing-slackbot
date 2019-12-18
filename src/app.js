@@ -208,8 +208,8 @@ app.message('hello', ({ message, say }) => {
 app.message(/open\.spotify\.com/g, async ({ message, say }) => {
   const fuzzySearchOptions = {
     keys: [
-      { name: 'title', weight: 0.8 },
-      { name: 'description', weight: 0.2 },
+      { name: 'title', weight: 0.6 },
+      { name: 'description', weight: 0.4 },
     ],
     id: 'shortUrl',
   };
@@ -218,10 +218,13 @@ app.message(/open\.spotify\.com/g, async ({ message, say }) => {
     `https://api.spotify.com/v1/${linkComponents.idType}s/${linkComponents.spotifyId}`
   );
   const trackInfo = extractSpotifyTrackInformation(response);
-  const searchString = `${trackInfo.track} ${trackInfo.artist} ${trackInfo.album}`;
+  const searchString = `${trackInfo.track} ${
+    trackInfo.artist
+  } ${trackInfo.album.replace(/\b\s\([dD]eluxe\s[eE]dition\)$/g, '')}`; // deluxe seems to mess up the youtube search..4
   console.log(searchString);
   const youtubeResult = await youtube.searchVideos(searchString, 10);
-  const fuse = new Fuse(youtubeResult, fuzzySearchOptions);
+  console.log(youtubeResult.results);
+  const fuse = new Fuse(youtubeResult.results, fuzzySearchOptions);
   const bestMatches = fuse.search(searchString);
   console.log(bestMatches);
 
